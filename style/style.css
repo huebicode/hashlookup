@@ -1,0 +1,354 @@
+* {
+    color: %TEXT_COLOR%;
+    background-color: %BACKGROUND_COLOR%;
+}
+
+QTableView {
+    alternate-background-color: rgb(52,53,54);
+    border: 2px solid %DARKER%;
+    border-radius: 2px;
+    outline: none;
+    margin-bottom: 5px;
+}
+
+QTableView::item:selected {
+    background-color: %BLUE%;
+    color: %BACKGROUND_COLOR%;
+}
+
+QTableView::item:!selected:focus { background:transparent; }
+
+
+QHeaderView {
+    font-weight: bold;
+}
+
+QHeaderView::section {
+    background-color: %DARKER%;
+    border: none;
+    border-right: 2px solid %LIGHTER%;
+}
+
+QHeaderView::section:hover {
+    background-color: rgba(150,170,200,.25);
+}
+
+QHeaderView::section:last {
+    border: none;
+}
+
+QHeaderView::down-arrow {
+    image: url(":/img/indicator-down-arrow.svg");
+}
+
+QHeaderView::up-arrow {
+    image: url(":/img/indicator-up-arrow.svg");
+}
+
+
+QScrollBar {
+    width: 13px;
+    height: 13px;
+}
+
+QScrollBar::handle {
+    background: %LIGHTER%;
+}
+
+QScrollBar::handle:hover {
+    background: rgb(90,95,100);
+}
+
+QScrollBar::add-page {
+    background: none;
+}
+
+QScrollBar::sub-page {
+    background: none;
+}
+
+QScrollBar::add-line {
+    background: none;
+}
+
+QScrollBar::sub-line {
+    background: none;
+}
+
+
+QLineEdit {
+    padding: 3;
+    border: 2px solid %LIGHTER%;
+    border-radius: 2px;
+    selection-background-color: %BLUE%;
+    selection-color: %BACKGROUND_COLOR%;
+}
+
+QLineEdit:hover, QLineEdit:focus {
+    border-color: %BLUE%;
+}
+
+
+QProgressBar {
+    border: 2px solid %BLUE%;
+    border-radius: 2px;
+    padding: 2;
+    text-align: center;
+    height: 15px;
+    color: %TEXT_COLOR%;
+}
+
+QProgressBar::chunk {
+    background-color: %BLUE%;
+    border-radius: 1px;
+}
+
+
+QToolTip {
+    color: %BACKGROUND_COLOR%;
+    background-color: %BLUE%;
+    border: none;
+}
+
+#info_label {
+    selection-background-color: %BLUE%;
+    selection-color: %BACKGROUND_COLOR%;
+}
+
+#frame_statusbar > QLabel {
+    color: rgba(255,255,255,.65);
+}
+
+#lbl_clock {
+    image: url(":/img/clock.svg");
+}
+
+
+QPushButton#btn_match_case {
+    margin-left: 4px;
+    border: none;
+    image: url(":/img/btns/case-normal.svg");
+}
+
+QPushButton#btn_match_case:hover {
+    image: url(":/img/btns/case-hover.svg");
+}
+
+QPushButton#btn_match_case:checked, QPushButton#btn_match_case:pressed {
+    image: url(":/img/btns/case-active.svg");
+}
+
+QPushButton#btn_whole_word {
+    border: none;
+    image: url(":/img/btns/word-normal.svg");
+}
+
+QPushButton#btn_whole_word:hover {
+    image: url(":/img/btns/word-hover.svg");
+}
+
+QPushButton#btn_whole_word:checked, QPushButton#btn_whole_word:pressed {
+    image: url(":/img/btns/word-active.svg");
+}
+
+QPushButton#btn_regex {
+    border: none;
+    padding-right: -2px; /* padding hack to eliminate auto extra padding for small buttons */
+    image: url(":/img/btns/regex-normal.svg");
+}
+
+QPushButton#btn_regex:hover {
+    image: url(":/img/btns/regex-hover.svg");
+}
+
+QPushButton#btn_regex:checked, QPushButton#btn_regex:pressed {
+    image: url(":/img/btns/regex-active.svg");
+}
+
+QPushButton#btn_md5 {
+    border: none;
+    image: url(":/img/btns/md5-normal.svg");
+}
+
+QPushButton#btn_md5:hover {
+    image: url(":/img/btns/md5-hover.svg");
+}
+
+QPushButton#btn_md5:checked, QPushButton#btn_md5:pressed {
+    image: url(":/img/btns/md5-active.svg");
+}
+
+QPushButton#btn_sha1 {
+    border: none;
+    image: url(":/img/btns/sha1-normal.svg");
+}
+
+QPushButton#btn_sha1:hover {
+    image: url(":/img/btns/sha1-hover.svg");
+}
+
+QPushButton#btn_sha1:checked, QPushButton#btn_sha1:pressed {
+    image: url(":/img/btns/sha1-active.svg");
+}
+
+QPushButton#btn_sha256 {
+    border: none;
+    image: url(":/img/btns/sha256-normal.svg");
+}
+
+QPushButton#btn_sha256:hover {
+    image: url(":/img/btns/sha256-hover.svg");
+}
+
+QPushButton#btn_sha256:checked, QPushButton#btn_sha256:pressed {
+    image: url(":/img/btns/sha256-active.svg");
+}
+
+QPushButton#btn_about {
+    border: none;
+    padding-right: -2px; /* padding hack to eliminate auto extra padding for small buttons */
+    image: url(":/img/btns/info-normal.svg");
+}
+
+QPushButton#btn_about:hover {
+    image: url(":/img/btns/info-hover.svg");
+}
+
+QPushButton#btn_about:checked, QPushButton#btn_about:pressed {
+    image: url(":/img/btns/info-active.svg");
+}
+
+QPushButton#btn_clear {
+    border: none;
+    image: url(":/img/btns/clear-normal.svg");
+}
+
+QPushButton#btn_clear:hover {
+    image: url(":/img/btns/clear-hover.svg");
+}
+
+QPushButton#btn_clear:checked, QPushButton#btn_clear:pressed {
+    image: url(":/img/btns/clear-active.svg");
+}
+
+QPushButton#btn_clipboard {
+    border: none;
+    image: url(":/img/btns/clipboard-normal.svg");
+}
+
+QPushButton#btn_clipboard:hover {
+    image: url(":/img/btns/clipboard-hover.svg");
+}
+
+QPushButton#btn_clipboard:checked, QPushButton#btn_clipboard:pressed {
+    image: url(":/img/btns/clipboard-active.svg");
+}
+
+QPushButton#btn_save {
+    border: none;
+    image: url(":/img/btns/tsv-normal.svg");
+}
+
+QPushButton#btn_save:hover {
+    image: url(":/img/btns/tsv-hover.svg");
+}
+
+QPushButton#btn_save:checked, QPushButton#btn_save:pressed {
+    image: url(":/img/btns/tsv-active.svg");
+}
+
+QPushButton#btn_hide_doubles {
+    border: none;
+    image: url(":/img/btns/filter-doubles-normal.svg");
+}
+
+QPushButton#btn_hide_doubles:hover {
+    image: url(":/img/btns/filter-doubles-hover.svg");
+}
+
+QPushButton#btn_hide_doubles:checked, QPushButton#btn_hide_doubles:pressed {
+    image: url(":/img/btns/filter-doubles-active.svg");
+}
+
+QPushButton#btn_hide_doubles:disabled {
+    image: url(":/img/btns/filter-doubles-deactivated.svg");
+}
+
+QPushButton#btn_dirpath {
+    border: none;
+    image: url(":/img/btns/dirpath-normal.svg");
+}
+
+QPushButton#btn_dirpath:hover {
+    image: url(":/img/btns/dirpath-hover.svg");
+}
+
+QPushButton#btn_dirpath:checked, QPushButton#btn_dirpath:pressed {
+    image: url(":/img/btns/dirpath-active.svg");
+}
+
+QPushButton#btn_fullpath {
+    border: none;
+    image: url(":/img/btns/fullpath-normal.svg");
+}
+
+QPushButton#btn_fullpath:hover {
+    image: url(":/img/btns/fullpath-hover.svg");
+}
+
+QPushButton#btn_fullpath:checked, QPushButton#btn_fullpath:pressed {
+    image: url(":/img/btns/fullpath-active.svg");
+}
+
+QPushButton#btn_filetype {
+    border: none;
+    image: url(":/img/btns/filetype-normal.svg");
+}
+
+QPushButton#btn_filetype:hover {
+    image: url(":/img/btns/filetype-hover.svg");
+}
+
+QPushButton#btn_filetype:checked, QPushButton#btn_filetype:pressed {
+    image: url(":/img/btns/filetype-active.svg");
+}
+
+QPushButton#btn_mimetype {
+    border: none;
+    image: url(":/img/btns/mimetype-normal.svg");
+}
+
+QPushButton#btn_mimetype:hover {
+    image: url(":/img/btns/mimetype-hover.svg");
+}
+
+QPushButton#btn_mimetype:checked, QPushButton#btn_mimetype:pressed {
+    image: url(":/img/btns/mimetype-active.svg");
+}
+
+QPushButton#btn_filesize {
+    border: none;
+    image: url(":/img/btns/filesize-normal.svg");
+}
+
+QPushButton#btn_filesize:hover {
+    image: url(":/img/btns/filesize-hover.svg");
+}
+
+QPushButton#btn_filesize:checked, QPushButton#btn_filesize:pressed {
+    image: url(":/img/btns/filesize-active.svg");
+}
+
+QPushButton#btn_extension {
+    border: none;
+    image: url(":/img/btns/extension-normal.svg");
+}
+
+QPushButton#btn_extension:hover {
+    image: url(":/img/btns/extension-hover.svg");
+}
+
+QPushButton#btn_extension:checked, QPushButton#btn_extension:pressed {
+    image: url(":/img/btns/extension-active.svg");
+}
+
