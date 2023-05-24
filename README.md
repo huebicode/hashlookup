@@ -1,6 +1,7 @@
 # Hash Lookup
 ### Multithreaded and hardware accelerated file hashing application with YARA integration
-![HashLookup-v1 1](https://github.com/huebicode/hashlookup/assets/3885373/c0d1ab56-f514-4c4f-9eb6-b277a613a857)
+![HashLookup-v1 1](https://github.com/huebicode/hashlookup/assets/3885373/197d69bb-6c1c-4806-a3aa-3bceda40c4c9)
+
 
 
 - hashing algorithms: MD5, SHA1 and SHA256
