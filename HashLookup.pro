@@ -16,7 +16,8 @@ SOURCES += \
     headersortingadapter.cpp \
     itemprocessor.cpp \
     main.cpp \
-    widget.cpp
+    widget.cpp \
+    yaraprocessor.cpp
 
 HEADERS += \
     Column.h \
@@ -26,12 +27,15 @@ HEADERS += \
     fileprocessor.h \
     headersortingadapter.h \
     itemprocessor.h \
-    widget.h
+    widget.h \
+    yaraprocessor.h
 
 FORMS += \
     widget.ui
 
 INCLUDEPATH += $$PWD/include
+INCLUDEPATH += $$PWD/include/yara
+LIBS += -L$$PWD/libs/yara -llibyara
 
 LIBS += -L$$PWD/libs/openssl -lcrypto
 LIBS += -L$$PWD/libs/libmagic -lmagic

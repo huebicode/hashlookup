@@ -15,7 +15,6 @@
         <file>img/btns/word-active.svg</file>
         <file>img/btns/word-hover.svg</file>
         <file>img/btns/word-normal.svg</file>
-        <file>img/icon.svg</file>
         <file>img/btns/md5-active.svg</file>
         <file>img/btns/md5-hover.svg</file>
         <file>img/btns/md5-normal.svg</file>
@@ -65,5 +64,16 @@
         <file>img/options.svg</file>
         <file>img/info_icon.svg</file>
         <file>img/info-text.svg</file>
+        <file>img/icon.png</file>
+        <file>img/green.svg</file>
+        <file>img/red.svg</file>
+        <file>img/btns/yara-active.svg</file>
+        <file>img/btns/yara-deactivated.svg</file>
+        <file>img/btns/yara-hover.svg</file>
+        <file>img/btns/yara-normal.svg</file>
+        <file>img/orange.svg</file>
+        <file>img/dir.svg</file>
+        <file>img/reload.svg</file>
+        <file>img/grey.svg</file>
     </qresource>
 </RCC>

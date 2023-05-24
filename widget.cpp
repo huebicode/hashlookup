@@ -18,6 +18,7 @@
 #include <QSettings>
 
 #include <QSvgWidget>
+#include <QDesktopServices>
 
 
 Widget::Widget(QWidget *parent)
@@ -29,6 +30,7 @@ Widget::Widget(QWidget *parent)
     md5 = true;
     sha1 = true;
     sha256 = true;
+    yara = false;
     show_filesize = true;
     show_extension = true;
     show_mimetype = true;
@@ -91,6 +93,14 @@ Widget::Widget(QWidget *parent)
     connect(fileProcessor, &FileProcessor::fileCount, this, &Widget::onFileProcessorFileCount);
     connect(fileProcessor, &FileProcessor::updateModel, this, &Widget::onFileProcessorUpdateModel);
     connect(fileProcessor, &FileProcessor::finishedProcessing, this, &Widget::onFileProcessingFinished);
+
+    connect(fileProcessor, &FileProcessor::startInitializingYara, fileProcessor, &FileProcessor::initializeYara);
+    connect(fileProcessor, &FileProcessor::startLoadingCompilingYaraRules, fileProcessor, &FileProcessor::loadAndCompileYaraRules);
+    connect(fileProcessor, &FileProcessor::finishedLoadingYaraRules, this, &Widget::onFinishedLoadingYaraRules);
+    connect(fileProcessor, &FileProcessor::yaraSuccess, this, &Widget::onYaraSuccess);
+    connect(fileProcessor, &FileProcessor::yaraError, this, &Widget::onYaraError);
+    connect(fileProcessor, &FileProcessor::yaraWarning, this, &Widget::onYaraWarning);
+
     file_processor_thread->start();
 
     processor = new ItemProcessor(this);
@@ -108,6 +118,8 @@ Widget::Widget(QWidget *parent)
     ui->btn_md5->setToolTip("MD5");
     ui->btn_sha1->setToolTip("SHA1");
     ui->btn_sha256->setToolTip("SHA256");
+    ui->btn_yara->setToolTip("YARA");
+
     ui->btn_hide_doubles->setToolTip("Filter Out Doubles");
     ui->btn_filesize->setToolTip("Show Filesize");
     ui->btn_extension->setToolTip("Show Extension");
@@ -125,6 +137,8 @@ Widget::Widget(QWidget *parent)
     ui->btn_whole_word->setToolTip("Whole Words");
     ui->btn_regex->setToolTip("Regex");
 
+    ui->btn_yara_status->setToolTip("Show YARA Output");
+
     hideButtons();
 
     drop_area_svg = new QSvgWidget(this);
@@ -136,6 +150,26 @@ Widget::Widget(QWidget *parent)
     info_text_svg->setFixedSize(QSize(790,1099));
     ui->info_layout->addWidget(info_text_svg);
     info_text_svg->load(QString(":/img/info-text.svg"));
+
+    yara_icon_red = QIcon(":/img/red.svg");
+    yara_icon_orange = QIcon(":/img/orange.svg");
+    yara_icon_green = QIcon(":/img/green.svg");
+    yara_icon_grey = QIcon(":/img/grey.svg");
+
+    ui->btn_open_yaradir->setIcon(QIcon(":/img/dir.svg"));
+    ui->btn_reload_rules->setIcon(QIcon(":/img/reload.svg"));
+
+    yara_init = false;
+    ui->textEdit_error->hide();
+    ui->textEdit_warning->hide();
+    ui->textEdit_success->hide();
+    ui->lbl_yara_error->hide();
+    ui->lbl_no_rules_found->hide();
+
+    ui->btn_yara_status->hide();
+    ui->btn_yara_status_main->hide();
+    ui->btn_reload_rules->hide();
+    ui->btn_open_yaradir->hide();
 }
 
 
@@ -148,7 +182,9 @@ Widget::~Widget()
 
 void Widget::dragEnterEvent(QDragEnterEvent *event)
 {
-    if(ui->stackedWidget->currentWidget() == ui->page_about || ui->stackedWidget->currentWidget() == ui->page_options)
+    if(ui->stackedWidget->currentWidget() == ui->page_about
+        || ui->stackedWidget->currentWidget() == ui->page_options
+        || ui->stackedWidget->currentWidget() == ui->page_yara)
         event->ignore();
     else
     {
@@ -179,10 +215,28 @@ void Widget::dragLeaveEvent(QDragLeaveEvent *event)
 
 void Widget::dropEvent(QDropEvent *event)
 {
+    row_count = model->rowCount();
+
     drop_area_svg->load(QString(":/img/drop-area-normal.svg"));
     urls = event->mimeData()->urls();
 
     if(urls.isEmpty())
+        return;
+
+    bool all_dirs_empty = true;
+    for(const QUrl &url : urls)
+    {
+        QString local_path(url.toLocalFile());
+        QFileInfo file_info(local_path);
+
+        if(file_info.isFile() || (file_info.isDir() && dir_contains_file(QDir(local_path))))
+        {
+            all_dirs_empty = false;
+            break;
+        }
+    }
+
+    if(all_dirs_empty)
         return;
 
     setAcceptDrops(false);
@@ -225,6 +279,7 @@ void Widget::dropEvent(QDropEvent *event)
                   << (md5 ? "MD5" : "")
                   << (sha1 ? "SHA1" : "")
                   << (sha256 ? "SHA256" : "")
+                  << (yara ? "YARA" : "")
                   << (show_filesize ? "Filesize" : "")
                   << (show_extension ? "Ext" : "")
                   << (show_mimetype ? "MIME type" : "")
@@ -243,7 +298,7 @@ void Widget::dropEvent(QDropEvent *event)
     }
     setColumnHeaders();
 
-    emit fileProcessor->startProcessing(urls, model->rowCount());
+    emit fileProcessor->startProcessing(urls, yara);
 }
 
 
@@ -289,6 +344,9 @@ void Widget::addDashToEmptyCells(QTableView *tableView)
             {
                 tableView->setIndexWidget(proxyIndex, nullptr);
                 delete cell_widget;
+                item->setText("-");
+            } else if(item->text().isEmpty())
+            {
                 item->setText("-");
             }
         }
@@ -434,6 +492,7 @@ void Widget::setColumnHeaders()
     ui->tableView->setColumnWidth(Column::MD5, 245);
     ui->tableView->setColumnWidth(Column::SHA1, 300);
     ui->tableView->setColumnWidth(Column::SHA256, 465);
+    ui->tableView->setColumnWidth(Column::YARA, 300);
     ui->tableView->setColumnWidth(Column::FILESIZE, 100);
     ui->tableView->setColumnWidth(Column::FILE_EXTENSION, 50);
     ui->tableView->setColumnWidth(Column::MIMETYPE, 300);
@@ -508,7 +567,7 @@ void Widget::showButtons()
 void Widget::onResultReady(const QString &result)
 {
     ui->progressBar->setValue(++processed_items);
-    ui->progressBar->setFormat(QString("hashed: %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+    ui->progressBar->setFormat(QString("hashing files: %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
 
     QStringList columns = result.split("\t");
     QString hash_type = columns[0];
@@ -554,7 +613,8 @@ void Widget::onProcessingFinished(const QString &result)
 {
     ui->progressBar->hide();
 
-    ui->frame_search->show();
+    if(!(model->rowCount() > 1000))
+        ui->frame_search->show();
 
     ui->lbl_clock->show();
     ui->lbl_status->show();
@@ -628,26 +688,39 @@ void Widget::onPageChanged()
     if(ui->stackedWidget->currentWidget() == ui->page_drop)
     {
         hideButtons();
+        ui->frame->show();
         ui->frame_btn_hashes->show();
         ui->btn_about->show();
+        ui->frame_yara_status->show();
     }
     else if(ui->stackedWidget->currentWidget() == ui->page_main)
     {
         showButtons();
+        ui->frame->show();
         ui->frame_btn_hashes->show();
         ui->btn_about->show();
+        ui->frame_yara_status->hide();
     }
     else if(ui->stackedWidget->currentWidget() == ui->page_options
              || ui->stackedWidget->currentWidget() == ui->page_about)
     {
         hideButtons();
+        ui->frame->show();
         ui->frame_btn_hashes->hide();
+        ui->frame_yara_status->hide();
     }
     else if(ui->stackedWidget->currentWidget() == ui->page_loading)
     {
         hideButtons();
-        ui->frame_btn_hashes->hide();
+        ui->frame->hide();
+        ui->frame_yara_status->hide();
+    }
+    else if(ui->stackedWidget->currentWidget() == ui->page_yara)
+    {
+        hideButtons();
+        ui->frame->hide();
         ui->btn_about->hide();
+        ui->frame_yara_status->show();
     }
 }
 
@@ -656,12 +729,6 @@ void Widget::onFileProcessorFileCountSum(int count)
 {
     model->setRowCount(model->rowCount() + count);
     file_count = count;
-
-    if(file_count > 1000)
-    {
-        over_thousand_files = true;
-    }
-
 
     if(!md5 && !sha1 && !sha256)
         item_count = file_count;
@@ -687,36 +754,48 @@ void Widget::onFileProcessorFileCountSum(int count)
 void Widget::onFileProcessorFileCount(int count)
 {
     ui->progressBar_modelfiles->setValue(count);
-    ui->progressBar_modelfiles->setFormat(QString("loading files: %1/%2").arg(ui->progressBar_modelfiles->value()).arg(ui->progressBar_modelfiles->maximum()));
+    ui->progressBar_modelfiles->setFormat(QString("processing files: %1/%2").arg(ui->progressBar_modelfiles->value()).arg(ui->progressBar_modelfiles->maximum()));
 }
 
 
-void Widget::onFileProcessorUpdateModel(int row, int col, const QString &data)
+void Widget::onFileProcessorUpdateModel(const QStringList &data)
 {
-    QStandardItem *item = new QStandardItem(data);
+    for(int col = 0; col < data.size(); ++col){
+        QStandardItem *item = new QStandardItem(data.at(col));
 
-    if(col == Column::FILESIZE)
-    {
-        QString number_str = data;
-        unsigned long long file_size = number_str.remove('.').toLongLong();
-        item->setData(file_size, Qt::UserRole);
-        item->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    }
-    else if(col == Column::FILE_EXTENSION)
-    {
-        if(data.isEmpty())
+        if(col == Column::FILESIZE)
         {
-            item->setData("-", Qt::DisplayRole);
+            QString number_str = data.at(col);
+            unsigned long long file_size = number_str.remove('.').toLongLong();
+            item->setData(file_size, Qt::UserRole);
+            item->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         }
-    }
-    else if(col == Column::FILENAME)
-    {
-        QColor foreground_color(235,240,250,255);
-        item->setData(foreground_color, Qt::ForegroundRole);
-        item->setIcon(file_icon);
+        else if(col == Column::FILE_EXTENSION)
+        {
+            if(data.at(col).isEmpty())
+            {
+                item->setData("-", Qt::DisplayRole);
+            }
+        }
+        else if(col == Column::FILENAME)
+        {
+            QColor foreground_color(235,240,250,255);
+            item->setData(foreground_color, Qt::ForegroundRole);
+            item->setIcon(file_icon);
+        }
+        else if(col == Column::YARA)
+        {
+            if(!data.at(col).isEmpty())
+            {
+                QColor foreground_color(255,200,121,255);
+                item->setData(foreground_color, Qt::ForegroundRole);
+            }
+        }
+
+        model->setItem(row_count, col, item);
     }
 
-    model->setItem(row, col, item);
+    ++row_count;
 
     if(!page_main_visible)
     {
@@ -752,7 +831,8 @@ void Widget::onFileProcessingFinished(const QHash<QString, QStringList> *file_li
         setAcceptDrops(true);
         addDashToEmptyCells(ui->tableView);
 
-        ui->frame_search->show();
+        if(!(model->rowCount() > 1000))
+            ui->frame_search->show();
 
         showButtons();
 
@@ -1126,4 +1206,201 @@ void Widget::writeSettings()
     settings.setValue("dirpath", show_dirpath);
     settings.setValue("fullpath", show_fullpath);
 }
+
+
+void Widget::on_btn_yara_toggled(bool checked)
+{
+    yara = checked ? true : false;
+
+    if(model->rowCount())
+    {
+        if(model->horizontalHeaderItem(Column::YARA)->text().isEmpty())
+            model->setHorizontalHeaderItem(Column::YARA, new QStandardItem("YARA"));
+    }
+    ui->tableView->setColumnHidden(Column::YARA, !yara);
+
+    if(checked && !yara_init)
+    {
+        yara_init = true;
+        ui->lbl_yara_error->hide();
+        ui->lbl_no_rules_found->hide();
+        ui->textEdit_error->hide();
+        ui->textEdit_warning->hide();
+        ui->textEdit_success->hide();
+        emit fileProcessor->startInitializingYara();
+        ui->stackedWidget->setCurrentWidget(ui->page_yara);
+    }
+
+    if(checked)
+    {
+        ui->btn_yara_status->show();
+        ui->btn_yara_status_main->show();
+    }
+    else
+    {
+        ui->btn_yara_status->hide();
+        ui->btn_yara_status->setChecked(false);
+        ui->btn_yara_status_main->hide();
+
+        ui->btn_reload_rules->hide();
+        ui->btn_open_yaradir->hide();
+
+        if(model->rowCount() > 0)
+            ui->stackedWidget->setCurrentWidget(ui->page_main);
+        else
+            ui->stackedWidget->setCurrentWidget(ui->page_drop);
+    }
+}
+
+
+void Widget::on_btn_yara_status_toggled(bool checked)
+{
+    if(checked)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->page_yara);
+        ui->btn_open_yaradir->show();
+        ui->btn_reload_rules->show();
+    }
+    else
+    {
+        if(model->rowCount() > 0)
+            ui->stackedWidget->setCurrentWidget(ui->page_main);
+        else
+            ui->stackedWidget->setCurrentWidget(ui->page_drop);
+
+        ui->btn_open_yaradir->hide();
+        ui->btn_reload_rules->hide();
+    }
+}
+
+void Widget::on_btn_yara_status_main_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_yara);
+    ui->btn_yara_status->setChecked(true);
+}
+
+
+void Widget::onYaraError(QString error)
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_yara);
+    ui->lbl_yara_error->show();
+    ui->textEdit_error->show();
+    ui->textEdit_error->append(error);
+}
+
+
+void Widget::onYaraWarning(QString warning)
+{
+    ui->textEdit_warning->show();
+    ui->textEdit_warning->append(warning);
+}
+
+
+void Widget::onYaraSuccess(QString success)
+{
+    ui->textEdit_success->show();
+    ui->textEdit_success->append(success);
+}
+
+
+void Widget::on_btn_reload_rules_clicked()
+{
+    ui->lbl_yara_error->hide();
+    ui->lbl_no_rules_found->hide();
+    ui->textEdit_error->hide();
+    ui->textEdit_warning->hide();
+    ui->textEdit_success->hide();
+
+    if(!yara_init)
+    {
+        yara_init = true;
+        emit fileProcessor->startInitializingYara();
+    }
+    else
+    {
+        ui->btn_reload_rules->setDisabled(true);
+        ui->textEdit_error->clear();
+        ui->textEdit_warning->clear();
+        ui->textEdit_success->clear();
+
+        emit fileProcessor->startLoadingCompilingYaraRules(QCoreApplication::applicationDirPath() + "/YARA");
+    }
+}
+
+
+void Widget::on_btn_open_yaradir_clicked()
+{
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QCoreApplication::applicationDirPath() + "/YARA"));
+}
+
+
+void Widget::onFinishedLoadingYaraRules()
+{
+    ui->btn_reload_rules->setEnabled(true);
+
+    ui->btn_yara_status->show();
+
+    if(ui->textEdit_error->isVisible())
+    {
+        ui->btn_yara->setDisabled(true);
+        ui->btn_yara_status->setIcon(yara_icon_red);
+        ui->btn_yara_status_main->setIcon(yara_icon_red);
+        ui->btn_yara_status->setChecked(true);
+        ui->stackedWidget->setCurrentWidget(ui->page_yara);
+    }
+    else if(ui->textEdit_warning->isVisible())
+    {
+        ui->btn_yara->setEnabled(true);
+        ui->btn_yara_status->setIcon(yara_icon_orange);
+        ui->btn_yara_status_main->setIcon(yara_icon_orange);
+
+        if(!ui->btn_yara_status->isChecked())
+        {
+            if(model->rowCount() > 0)
+                ui->stackedWidget->setCurrentWidget(ui->page_main);
+            else
+                ui->stackedWidget->setCurrentWidget(ui->page_drop);
+        }
+    }
+    else if(ui->textEdit_success->isVisible())
+    {
+        ui->btn_yara->setEnabled(true);
+        ui->btn_yara_status->setIcon(yara_icon_green);
+        ui->btn_yara_status_main->setIcon(yara_icon_green);
+
+        if(!ui->btn_yara_status->isChecked())
+        {
+            if(model->rowCount() > 0)
+                ui->stackedWidget->setCurrentWidget(ui->page_main);
+            else
+                ui->stackedWidget->setCurrentWidget(ui->page_drop);
+        }
+    }
+    else
+    {
+        ui->stackedWidget->setCurrentWidget(ui->page_yara);
+        ui->lbl_no_rules_found->show();
+        ui->btn_yara->setDisabled(true);
+        ui->btn_yara_status->setIcon(yara_icon_grey);
+        ui->btn_yara_status_main->setIcon(yara_icon_grey);
+        ui->btn_yara_status->setChecked(true);
+    }
+}
+
+
+bool Widget::dir_contains_file(const QDir &dir)
+{
+    if(!dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Files).isEmpty())
+        return true;
+
+    for(const auto &sub_dir : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs))
+    {
+        if(dir_contains_file(QDir(sub_dir.absoluteFilePath())))
+            return true;
+    }
+
+    return false;
+}
+
+
 

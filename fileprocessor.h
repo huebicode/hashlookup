@@ -1,10 +1,13 @@
 #ifndef FILEPROCESSOR_H
 #define FILEPROCESSOR_H
 
+#include <QDir>
 #include <QHash>
 #include <QObject>
 #include <QStandardItemModel>
 #include <QUrl>
+
+#include "yaraprocessor.h"
 
 class FileProcessor : public QObject
 {
@@ -14,22 +17,41 @@ public:
     ~FileProcessor();
 
 public slots:
-    void processFiles(const QList<QUrl> &urls, int model_row_count);
+    void processFiles(const QList<QUrl> &urls, bool yara);
+
+    void initializeYara();
+    void loadAndCompileYaraRules(const QString &yara_dir_path);
+
 
 signals:
-    void startProcessing(const QList<QUrl> &urls, int model_row_count);
+    void startProcessing(const QList<QUrl> &urls, bool yara);
     void fileCountSum(int count);
     void fileCount(int count);
-    void updateModel(int row, int col, const QString &data);
+    void updateModel(const QStringList &data);
     void finishedProcessing(const QHash<QString, QStringList> *file_list);
+
+    void startInitializingYara();
+    void startLoadingCompilingYaraRules(const QString &yara_dir_path);
+    void finishedLoadingYaraRules();
+
+    void yaraSuccess(QString success);
+    void yaraError(QString error);
+    void yaraWarning(QString warning);
+
 
 private:
     void insertFileListData(QHash<QString, QStringList> &file_list, const QString &file_path);
-    void createModel(QHash<QString, QStringList> &file_list);
+
     QString getFileType(const QString file_path, const bool &mime_type);
 
     QHash<QString, QStringList> *file_list;
-    int row_count;
+
+    YaraProcessor *scanner;
+    QDir yara_dir;
+    bool yara_active;
+
+    int file_count;
+    int file_counter;
 };
 
 #endif // FILEPROCESSOR_H

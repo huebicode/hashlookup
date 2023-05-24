@@ -66,7 +66,7 @@ private slots:
 
     void onFileProcessorFileCountSum(int count);
     void onFileProcessorFileCount(int count);
-    void onFileProcessorUpdateModel(int row, int col, const QString &data);
+    void onFileProcessorUpdateModel(const QStringList &data);
     void onFileProcessingFinished(const QHash<QString, QStringList> *file_list);
 
     void on_btn_filesize_toggled(bool checked);
@@ -74,6 +74,22 @@ private slots:
     void on_btn_mimetype_toggled(bool checked);
 
     void on_btn_filetype_toggled(bool checked);
+
+    void on_btn_yara_toggled(bool checked);
+
+    void on_btn_yara_status_toggled(bool checked);
+
+    void onYaraSuccess(QString success);
+    void onYaraError(QString error);
+    void onYaraWarning(QString warning);
+
+    void onFinishedLoadingYaraRules();
+
+    void on_btn_reload_rules_clicked();
+
+    void on_btn_open_yaradir_clicked();
+
+    void on_btn_yara_status_main_clicked();
 
 private:
     Ui::Widget *ui;
@@ -111,6 +127,7 @@ private:
     bool md5;
     bool sha1;
     bool sha256;
+    bool yara;
     bool show_filesize;
     bool show_extension;
     bool show_mimetype;
@@ -127,13 +144,21 @@ private:
 
     bool page_main_visible;
 
-    bool over_thousand_files;
-
     QStandardItemModel *model;
     HeaderSortingAdapter *headerSortingAdapter;
     CustomSortFilterProxyModel *proxyModel;
 
     QSvgWidget *drop_area_svg;
     QSvgWidget *info_text_svg;
+
+    QIcon yara_icon_red;
+    QIcon yara_icon_green;
+    QIcon yara_icon_orange;
+    QIcon yara_icon_grey;
+
+    bool yara_init;
+    int row_count;
+
+    bool dir_contains_file(const QDir &dir);
 };
 #endif // WIDGET_H

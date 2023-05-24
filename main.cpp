@@ -22,14 +22,15 @@ QString readCSSFile(QString path)
         QString darker = "rgb(32,33,34)";
 
         QString blue = "#76a4bd";
-
-        QString red = "#FF4B5C";
+        QString red = "#ff4b5c";
+        QString green = "#81bd76";
 
         css.replace("%BACKGROUND_COLOR%", background_color);
         css.replace("%TEXT_COLOR%", text_color);
 
         css.replace("%BLUE%", blue);
         css.replace("%RED%", red);
+        css.replace("%GREEN%", green);
         css.replace("%LIGHTER%", lighter);
         css.replace("%DARKER%", darker);
 
@@ -61,7 +62,7 @@ int main(int argc, char *argv[])
         qDebug() << "Failed to load custom font";
 
     Widget w;
-    w.setWindowIcon(QIcon(":/img/icon.svg"));
+    w.setWindowIcon(QIcon(":/img/icon.png"));
     w.show();
     return a.exec();
 }

@@ -7,6 +7,7 @@ enum Column
     MD5,
     SHA1,
     SHA256,
+    YARA,
     FILESIZE,
     FILE_EXTENSION,
     MIMETYPE,

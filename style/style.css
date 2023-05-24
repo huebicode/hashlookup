@@ -18,6 +18,15 @@ QTableView::item:selected {
 
 QTableView::item:!selected:focus { background:transparent; }
 
+QTextEdit {
+    padding: 2px;
+    border: 2px solid %DARKER%;
+    border-radius: 2px;
+    selection-background-color: %BLUE%;
+    selection-color: %BACKGROUND_COLOR%;
+}
+
+
 
 QHeaderView {
     font-weight: bold;
@@ -55,28 +64,38 @@ QScrollBar::handle {
     background: %LIGHTER%;
 }
 
+QScrollBar::handle:vertical {
+    min-height: 30px;
+}
+
+QScrollBar::handle:horizontal {
+    min-width: 30px;
+}
+
 QScrollBar::handle:hover {
     background: rgb(90,95,100);
 }
 
-QScrollBar::add-page {
+QScrollBar::add-page, QScrollBar::sub-page {
     background: none;
 }
 
-QScrollBar::sub-page {
+QScrollBar::add-line, QScrollBar::sub-line {
+    border: none;
     background: none;
+    width: 0;
+    height: 0;
 }
 
-QScrollBar::add-line {
+QScrollBar::left-arrow, QScrollBar::right-arrow {
+    border: none;
     background: none;
+    width: 0;
+    height: 0;
 }
 
-QScrollBar::sub-line {
-    background: none;
-}
 
-
-QLineEdit {
+QLineEdit#lineEdit_search {
     padding: 3;
     border: 2px solid %LIGHTER%;
     border-radius: 2px;
@@ -84,23 +103,37 @@ QLineEdit {
     selection-color: %BACKGROUND_COLOR%;
 }
 
-QLineEdit:hover, QLineEdit:focus {
+QLineEdit#lineEdit_search:hover, QLineEdit#lineEdit_search:focus {
     border-color: %BLUE%;
+}
+
+#lbl_yara_error {
+    padding: 3;
+    border: none;
+    background-color: %RED%;
+    color: %BACKGROUND_COLOR%;
+    border-radius: 2px;
+}
+
+#lbl_no_rules_found {
+    padding: 3;
+    border: none;
+    background-color: rgb(255,200,121);
+    color: %BACKGROUND_COLOR%;
+    border-radius: 2px;
 }
 
 
 QProgressBar {
     border: 2px solid %BLUE%;
     border-radius: 2px;
-    padding: 2;
     text-align: center;
     height: 15px;
-    color: %TEXT_COLOR%;
+    color: %BLUE%;
 }
 
 QProgressBar::chunk {
-    background-color: %BLUE%;
-    border-radius: 1px;
+    background-color: rgba(79,103,116, .5);
 }
 
 
@@ -108,6 +141,14 @@ QToolTip {
     color: %BACKGROUND_COLOR%;
     background-color: %BLUE%;
     border: none;
+}
+
+QSplitter::handle {
+    background-color: %LIGHTER%;
+}
+
+QSplitter::handle:hover {
+    background-color: %BLUE%;
 }
 
 #info_label {
@@ -121,6 +162,31 @@ QToolTip {
 
 #lbl_clock {
     image: url(":/img/clock.svg");
+}
+
+QPushButton#btn_yara_status, QPushButton#btn_yara_status_main, #btn_open_yaradir, #btn_reload_rules {
+    border: none;
+    padding: 2px;
+}
+
+QPushButton#btn_yara_status:hover, QPushButton#btn_yara_status_main:hover, #btn_open_yaradir, #btn_reload_rules {
+    border-radius: 2px;
+    background-color: %LIGHTER%;
+}
+
+#btn_open_yaradir:hover, #btn_reload_rules:hover {
+    border: 2px solid %BLUE%;
+    border-radius: 2px;
+}
+
+QPushButton#btn_yara_status:checked, QPushButton#btn_yara_status_main:checked, QPushButton#btn_yara_status:pressed, QPushButton#btn_yara_status_main:pressed, #btn_open_yaradir:pressed, #btn_reload_rules:pressed {
+    border: 2px solid %BLUE%;
+    border-radius: 2px;
+    background-color: "#4f6774";
+}
+
+#btn_yara_status_main {
+    margin-right: 20px;
 }
 
 
@@ -203,6 +269,25 @@ QPushButton#btn_sha256:hover {
 QPushButton#btn_sha256:checked, QPushButton#btn_sha256:pressed {
     image: url(":/img/btns/sha256-active.svg");
 }
+
+
+QPushButton#btn_yara {
+    border: none;
+    image: url(":/img/btns/yara-normal.svg");
+}
+
+QPushButton#btn_yara:hover {
+    image: url(":/img/btns/yara-hover.svg");
+}
+
+QPushButton#btn_yara:checked, QPushButton#btn_yara:pressed {
+    image: url(":/img/btns/yara-active.svg");
+}
+
+QPushButton#btn_yara:disabled {
+    image: url(":/img/btns/yara-deactivated.svg");
+}
+
 
 QPushButton#btn_about {
     border: none;

@@ -18,17 +18,20 @@ FileProcessor::~FileProcessor()
 {
     if(file_list)
         delete file_list;
+
+    yr_finalize();
+    delete scanner;
 }
 
 
 
-void FileProcessor::processFiles(const QList<QUrl> &urls, const int model_row_count)
+void FileProcessor::processFiles(const QList<QUrl> &urls, bool yara)
 {
     file_list->clear();
-    row_count = model_row_count;
+    yara_active = yara;
 
     // get file count
-    int file_count = 0;
+    file_count = 0;
     for(const QUrl &url :urls)
     {
         if(url.isLocalFile())
@@ -53,7 +56,10 @@ void FileProcessor::processFiles(const QList<QUrl> &urls, const int model_row_co
     }
     emit fileCountSum(file_count);
 
+
     // process files
+    file_counter = 0;
+
     for(const QUrl &url : urls)
     {
         if(url.isLocalFile())
@@ -77,12 +83,15 @@ void FileProcessor::processFiles(const QList<QUrl> &urls, const int model_row_co
             }
         }
     }
-    createModel(*file_list);
+
+    emit finishedProcessing(file_list);
 }
 
 
 void FileProcessor::insertFileListData(QHash<QString, QStringList> &file_list, const QString &file_path)
 {
+    bool large_file_count = (file_count > 1000 ? true : false);
+
     for(int i = 0; i < Column::NUM_COLUMNS; ++i)
         file_list[file_path].append("");
 
@@ -91,14 +100,31 @@ void FileProcessor::insertFileListData(QHash<QString, QStringList> &file_list, c
     QString file_name = file_info.fileName();
     file_list[file_path].replace(Column::FILENAME, file_name);
 
-    QLocale locale;
+    if(yara_active)
+    {
+        file_list[file_path].replace(Column::YARA, scanner->scanFile(file_path));
+    }
 
+    QLocale locale;
     file_list[file_path].replace(Column::FILESIZE, locale.toString(file_info.size()));
+
     file_list[file_path].replace(Column::FILE_EXTENSION, file_info.suffix());
+
     file_list[file_path].replace(Column::MIMETYPE, getFileType(file_path, true));
+
     file_list[file_path].replace(Column::FILETYPE, getFileType(file_path, false));
+
     file_list[file_path].replace(Column::FULLPATH, file_path);
+
     file_list[file_path].replace(Column::DIRPATH, file_info.dir().dirName() + "/" + file_name);
+
+    emit updateModel(file_list[file_path]);
+
+    ++file_counter;
+    emit fileCount(file_counter);
+
+    if(large_file_count)
+        QThread::msleep(10);
 }
 
 
@@ -184,32 +210,69 @@ QString FileProcessor::getFileType(const QString file_path, const bool &mime_typ
 }
 
 
-void FileProcessor::createModel(QHash<QString, QStringList> &file_list)
+void FileProcessor::initializeYara()
 {
-    bool too_much_files = (file_list.size() > 1000 ? true : false);
-
-    int file_count = 0;
-    int insert_to_row = row_count;
-
-    for(auto it = file_list.constBegin(); it != file_list.constEnd(); ++it)
+    if(yr_initialize() != ERROR_SUCCESS)
     {
-        emit updateModel(insert_to_row, Column::FILENAME, file_list[it.key()].at(Column::FILENAME));
-        emit updateModel(insert_to_row, Column::FILESIZE, file_list[it.key()].at(Column::FILESIZE));
-        emit updateModel(insert_to_row, Column::FILE_EXTENSION, file_list[it.key()].at(Column::FILE_EXTENSION));
-        emit updateModel(insert_to_row, Column::FILETYPE, file_list[it.key()].at(Column::FILETYPE));
-        emit updateModel(insert_to_row, Column::MIMETYPE, file_list[it.key()].at(Column::MIMETYPE));
-        emit updateModel(insert_to_row, Column::DIRPATH, file_list[it.key()].at(Column::DIRPATH));
-        emit updateModel(insert_to_row, Column::FULLPATH, file_list[it.key()].at(Column::FULLPATH));
-
-        if(too_much_files)
-            QThread::msleep(25);
-
-        ++insert_to_row;
-        ++file_count;
-        emit fileCount(file_count);
+        qDebug() << "Unable to initialize YARA";
     }
 
-    emit finishedProcessing(&file_list);
+    scanner = new YaraProcessor();
+
+    connect(scanner, &YaraProcessor::yaraError, this, &FileProcessor::yaraError);
+    connect(scanner, &YaraProcessor::yaraWarning, this, &FileProcessor::yaraWarning);
+    connect(scanner, &YaraProcessor::yaraSuccess, this, &FileProcessor::yaraSuccess);
+
+    yara_dir = QCoreApplication::applicationDirPath() + "/YARA";
+
+    if(!yara_dir.exists())
+        yara_dir.mkpath(".");
+
+    loadAndCompileYaraRules(yara_dir.absolutePath());
+}
+
+void FileProcessor::loadAndCompileYaraRules(const QString &yara_dir_path)
+{
+    scanner->clearRules();
+
+    // load copiled rules
+    QDir compiled_rules_dir(yara_dir_path + "/Compiled");
+
+    if(!compiled_rules_dir.exists())
+        compiled_rules_dir.mkpath(".");
+
+    QDirIterator it_compiled(compiled_rules_dir.absolutePath(), QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
+
+    QStringList compiled_rule_list;
+
+    while(it_compiled.hasNext())
+    {
+        QString file_path = it_compiled.next();
+        compiled_rule_list.append(file_path);
+    }
+
+    scanner->loadCompiledYaraRules(compiled_rule_list);
+
+
+    // compile and load text rules
+    QDir text_rules_dir(yara_dir_path + "/Rules");
+
+    if(!text_rules_dir.exists())
+        text_rules_dir.mkpath(".");
+
+    QDirIterator it_text(text_rules_dir.absolutePath(), QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
+
+    QStringList text_rule_list;
+
+    while(it_text.hasNext())
+    {
+        QString file_path = it_text.next();
+        text_rule_list.append(file_path);
+    }
+
+    scanner->compileYaraRules(text_rule_list);
+
+    emit finishedLoadingYaraRules();
 }
 
 
