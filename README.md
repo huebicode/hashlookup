@@ -1,8 +1,6 @@
 # Hash Lookup
 ### Multithreaded and hardware accelerated file hashing application with YARA integration
-![HashLookup-v1 1](https://github.com/huebicode/hashlookup/assets/3885373/197d69bb-6c1c-4806-a3aa-3bceda40c4c9)
-
-
+![HashLookupv1 2](https://github.com/huebicode/hashlookup/assets/3885373/4e25adcd-d519-4449-b759-13352fe627cf)
 
 - hashing algorithms: MD5, SHA1 and SHA256
 - scan files with YARA rules
@@ -11,7 +9,7 @@
 - color and filter out doubles
 - show file size, file extension, MIME type, file type, dirpath and fullpath
 - export to clipboard or .tsv
-
+- zip selected or all files
 
 ### Dependencies and Resources
 
@@ -20,6 +18,6 @@
 - yara v4.3.0 (BSD-3-Clause License)
 - libmagic v5.4
 - zlib v1.213 (zlib License)
-- liblzma v5.4.1 (public domain)
+- QuaZip v1.4 (LGPLv2.1)
 - HeaderSortingAdapter (MIT License)
 - Roboto Font (Apache License 2.0)
