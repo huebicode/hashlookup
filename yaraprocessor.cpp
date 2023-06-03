@@ -30,7 +30,7 @@ void YaraProcessor::clearRules()
     m_rule_sets.clear();
 }
 
-void YaraProcessor::compilerCallback(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data)
+void YaraProcessor::compilerCallback(int error_level, const char *file_name, int line_number, const YR_RULE *, const char *message, void *user_data)
 {
     YaraProcessor *instance = static_cast<YaraProcessor*>(user_data);
 
@@ -75,8 +75,10 @@ void YaraProcessor::compileYaraRules(const QStringList &rule_file_path_list)
     {
         QStringList file_path = rule_file_path.split("/YARA/");
 
-        FILE *rule_file = fopen(rule_file_path.toStdString().c_str(), "r");
-        if(!rule_file)
+        FILE *rule_file = nullptr;
+        errno_t err = fopen_s(&rule_file, rule_file_path.toStdString().c_str(), "r");
+//        FILE *rule_file = fopen(rule_file_path.toStdString().c_str(), "r");
+        if(err != 0)
         {
             emit yaraWarning("<font color='#FFC879'>[ * ] Unable to open rules: </font>" + file_path.at(1));
             continue;

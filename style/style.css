@@ -342,6 +342,19 @@ QPushButton#btn_save:checked, QPushButton#btn_save:pressed {
     image: url(":/img/btns/tsv-active.svg");
 }
 
+QPushButton#btn_zip {
+    border: none;
+    image: url(":/img/btns/zip-normal.svg");
+}
+
+QPushButton#btn_zip:hover {
+    image: url(":/img/btns/zip-hover.svg");
+}
+
+QPushButton#btn_zip:checked, QPushButton#btn_zip:pressed {
+    image: url(":/img/btns/zip-active.svg");
+}
+
 QPushButton#btn_hide_doubles {
     border: none;
     image: url(":/img/btns/filter-doubles-normal.svg");

@@ -48,12 +48,11 @@ int main(int argc, char *argv[])
     QString css = readCSSFile(":/style/style.css");
     a.setStyleSheet(css);
 
-    QFontDatabase font_database;
-    int font_id = font_database.addApplicationFont(":/fonts/Roboto-Regular.ttf");
+    int font_id = QFontDatabase::addApplicationFont(":/fonts/Roboto-Regular.ttf");
 
     if(font_id != -1)
     {
-        QString font_family = font_database.applicationFontFamilies(font_id).at(0);
+        QString font_family = QFontDatabase::applicationFontFamilies(font_id).at(0);
         QFont custom_font(font_family);
         custom_font.setPointSize(10);
         a.setFont(custom_font);

@@ -6,11 +6,13 @@
 #include <QStandardItemModel>
 #include <QLabel>
 #include <QSvgWidget>
+#include <QDir>
 
-#include "headersortingadapter.h"
-#include "customsortfilterproxymodel.h"
-#include "fileprocessor.h"
-#include "itemprocessor.h"
+class HeaderSortingAdapter;
+class CustomSortFilterProxyModel;
+class ItemProcessor;
+class FileProcessor;
+class Zipper;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -30,6 +32,9 @@ protected:
     void dropEvent(QDropEvent *event) override;
 
 private slots:
+    void onFinishedZipping();
+    void onZipFileFinished(int counter);
+
     void onProcessingFinished(const QString &result);
     void onResultReady(const QString &result);
     void onCellItemChanged(QStandardItem *item);
@@ -55,8 +60,6 @@ private slots:
     void on_btn_regex_toggled(bool checked);
 
     void on_btn_about_toggled(bool checked);
-
-    void on_btn_options_toggled(bool checked);
 
     void showSelectedFiles();
 
@@ -91,10 +94,14 @@ private slots:
 
     void on_btn_yara_status_main_clicked();
 
+    void on_btn_zip_clicked();
+
 private:
     Ui::Widget *ui;
     QWidget *layer;
+
     ItemProcessor *processor;
+    Zipper *zipper;
 
     void readSettings();
     void writeSettings();

@@ -75,5 +75,8 @@
         <file>img/dir.svg</file>
         <file>img/reload.svg</file>
         <file>img/grey.svg</file>
+        <file>img/btns/zip-active.svg</file>
+        <file>img/btns/zip-hover.svg</file>
+        <file>img/btns/zip-normal.svg</file>
     </qresource>
 </RCC>

@@ -1,12 +1,12 @@
 QT       += core gui concurrent svg svgwidgets
-
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
 
-# You can make your code fail to compile if it uses deprecated APIs.
-# In order to do so, uncomment the following line.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+CONFIG -= embed_manifest_exe
+win32:RC_FILE = HashLookup.rc # embedding own manifest file
+
+DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
 
 SOURCES += \
     customdelegate.cpp \
@@ -17,7 +17,8 @@ SOURCES += \
     itemprocessor.cpp \
     main.cpp \
     widget.cpp \
-    yaraprocessor.cpp
+    yaraprocessor.cpp \
+    zipper.cpp
 
 HEADERS += \
     Column.h \
@@ -28,28 +29,31 @@ HEADERS += \
     headersortingadapter.h \
     itemprocessor.h \
     widget.h \
-    yaraprocessor.h
+    yaraprocessor.h \
+    zipper.h
 
 FORMS += \
     widget.ui
 
 INCLUDEPATH += $$PWD/include
 INCLUDEPATH += $$PWD/include/yara
-LIBS += -L$$PWD/libs/yara -llibyara
+INCLUDEPATH += $$PWD/include/zlib
 
-LIBS += -L$$PWD/libs/openssl -lcrypto
-LIBS += -L$$PWD/libs/libmagic -lmagic
-LIBS += -L$$PWD/libs/zlib -lz
-LIBS += -L$$PWD/libs/liblzma -llzma
+#CONFIG (debug) {
+#    LIBS += -L$$PWD/lib/debug -lmagic -llibyara -lAdvapi32 -llibcrypto -lquazip1-qt6d
+#}
+
+CONFIG (release) {
+    LIBS += -L$$PWD/lib/release -lmagic -llibyara -lAdvapi32 -llibcrypto -lquazip1-qt6
+}
 
 RESOURCES += \
     res.qrc
-
-win32:RC_FILE = HashLookup.rc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
 
 

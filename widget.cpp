@@ -3,6 +3,12 @@
 #include "ui_widget.h"
 #include "customdelegate.h"
 #include "customtableview.h"
+#include "headersortingadapter.h"
+#include "customsortfilterproxymodel.h"
+#include "itemprocessor.h"
+#include "fileprocessor.h"
+
+#include "zipper.h"
 
 #include <QClipboard>
 #include <QDirIterator>
@@ -129,8 +135,8 @@ Widget::Widget(QWidget *parent)
     ui->btn_fullpath->setToolTip("Show Fullpath");
     ui->btn_clipboard->setToolTip("Copy To Clipboard");
     ui->btn_save->setToolTip("Save As .tsv");
+    ui->btn_zip->setToolTip("Zip File(s)");
     ui->btn_clear->setToolTip("Clear Table");
-    ui->btn_options->hide();
     ui->btn_about->setToolTip("Show Info");
 
     ui->btn_match_case->setToolTip("Case Sensitive");
@@ -269,6 +275,7 @@ void Widget::dropEvent(QDropEvent *event)
     ui->btn_clear->hide();
     ui->btn_clipboard->hide();
     ui->btn_save->hide();
+    ui->btn_zip->hide();
 
     layer->hide();
 
@@ -545,6 +552,7 @@ void Widget::hideButtons()
     ui->btn_fullpath->hide();
     ui->btn_clipboard->hide();
     ui->btn_save->hide();
+    ui->btn_zip->hide();
     ui->btn_clear->hide();
 }
 
@@ -560,6 +568,7 @@ void Widget::showButtons()
     ui->btn_fullpath->show();
     ui->btn_clipboard->show();
     ui->btn_save->show();
+    ui->btn_zip->show();
     ui->btn_clear->show();
 }
 
@@ -745,16 +754,16 @@ void Widget::onFileProcessorFileCountSum(int count)
         item_count = multiplicator * file_count;
     }
 
-    ui->progressBar_modelfiles->show();
-    ui->progressBar_modelfiles->setRange(0, file_count);
+    ui->progressBar->show();
+    ui->progressBar->setRange(0, file_count);
 
     ui->lbl_status_files->hide();
 }
 
 void Widget::onFileProcessorFileCount(int count)
 {
-    ui->progressBar_modelfiles->setValue(count);
-    ui->progressBar_modelfiles->setFormat(QString("processing files: %1/%2").arg(ui->progressBar_modelfiles->value()).arg(ui->progressBar_modelfiles->maximum()));
+    ui->progressBar->setValue(count);
+    ui->progressBar->setFormat(QString("processing files: %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
 }
 
 
@@ -807,7 +816,7 @@ void Widget::onFileProcessorUpdateModel(const QStringList &data)
 
 void Widget::onFileProcessingFinished(const QHash<QString, QStringList> *file_list)
 {
-    ui->progressBar_modelfiles->hide();
+    ui->progressBar->hide();
     ui->lbl_status_files->show();
 
     if(file_list->size() < 500)
@@ -1118,30 +1127,7 @@ void Widget::on_btn_about_toggled(bool checked)
 
     if(checked)
     {
-        ui->btn_options->setChecked(false);
         ui->stackedWidget->setCurrentWidget(ui->page_about);
-    }
-    else
-    {
-        if(ui->tableView->model()->rowCount() > 0)
-        {
-            ui->stackedWidget->setCurrentWidget(ui->page_main);
-        }
-        else
-            ui->stackedWidget->setCurrentWidget(ui->page_drop);
-    }
-}
-
-
-void Widget::on_btn_options_toggled(bool checked)
-{
-    toggleFrameButtons(ui->frame_btn_hashes->children());
-    toggleFrameButtons(ui->frame_btn_options->children());
-
-    if(checked)
-    {
-        ui->btn_about->setChecked(false);
-        ui->stackedWidget->setCurrentWidget(ui->page_options);
     }
     else
     {
@@ -1378,12 +1364,17 @@ void Widget::onFinishedLoadingYaraRules()
     }
     else
     {
+        ui->btn_yara->setChecked(false);
+        ui->btn_yara->setDisabled(true);
         ui->stackedWidget->setCurrentWidget(ui->page_yara);
         ui->lbl_no_rules_found->show();
-        ui->btn_yara->setDisabled(true);
+
         ui->btn_yara_status->setIcon(yara_icon_grey);
-        ui->btn_yara_status_main->setIcon(yara_icon_grey);
         ui->btn_yara_status->setChecked(true);
+        ui->btn_yara_status->show();
+
+        ui->btn_yara_status_main->setIcon(yara_icon_grey);
+        ui->btn_yara_status_main->show();
     }
 }
 
@@ -1401,6 +1392,84 @@ bool Widget::dir_contains_file(const QDir &dir)
 
     return false;
 }
+
+
+void Widget::on_btn_zip_clicked()
+{
+    QItemSelectionModel *selection = ui->tableView->selectionModel();
+    QModelIndexList indexes = selection->selectedRows();
+
+    if(indexes.empty())
+    {
+        ui->tableView->selectAll();
+        indexes = selection->selectedRows();
+    }
+
+    QStringList file_paths;
+
+    for(int i = 0; i < indexes.count(); ++i)
+    {
+        QModelIndex index = indexes.at(i);
+        QModelIndex col_index = model->index(index.row(), Column::FULLPATH);
+        QStandardItem *item = model->itemFromIndex(col_index);
+
+        if(item)
+            file_paths << item->text();
+    }
+
+    QFileDialog file_dialog(this, "Save to .zip");
+    file_dialog.setAcceptMode(QFileDialog::AcceptSave);
+    file_dialog.setFileMode(QFileDialog::AnyFile);
+    file_dialog.setNameFilter("ZIP (*.zip);;All Files (*)");
+    file_dialog.setDefaultSuffix("zip");
+
+    if(file_dialog.exec() == QDialog::Accepted)
+    {
+        QString file_path = file_dialog.selectedFiles().at(0);
+
+        zipper = new Zipper(file_path);
+
+        QThread *zipper_thread = new QThread();
+        zipper->moveToThread(zipper_thread);
+
+        connect(zipper, &Zipper::startZipping, zipper, &Zipper::zipFileList);
+        connect(zipper, &Zipper::fileFinished, this, &Widget::onZipFileFinished);
+        connect(zipper, &Zipper::zippingFinished, this, &Widget::onFinishedZipping);
+
+        zipper_thread->start();
+
+        emit zipper->startZipping(file_paths);
+
+        ui->progressBar->setRange(0, file_paths.size());
+        ui->progressBar->setValue(0);
+        ui->progressBar->show();
+
+        ui->btn_zip->setEnabled(false);
+    }
+}
+
+
+void Widget::onZipFileFinished(int counter)
+{
+    ui->progressBar->setValue(counter);
+    ui->progressBar->setFormat(QString("zipping: %1/%2").arg(ui->progressBar->value()).arg(ui->progressBar->maximum()));
+}
+
+
+void Widget::onFinishedZipping()
+{
+    delete zipper;
+    zipper = nullptr;
+    ui->progressBar->hide();
+    ui->btn_zip->setEnabled(true);
+}
+
+
+
+
+
+
+
 
 
 
