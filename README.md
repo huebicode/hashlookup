@@ -9,7 +9,7 @@
 - color and filter out doubles
 - show file size, file extension, MIME type, file type, dirpath and fullpath
 - export to clipboard or .tsv
-- zip selected or all files
+- zip selected or all files (up to 4GB per file)
 
 ### Dependencies and Resources
 
